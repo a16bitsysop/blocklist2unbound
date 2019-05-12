@@ -22,6 +22,6 @@ usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-r] [BL [BL ...]] position
 ''''
 
 TODO:
-..* Add exist checking for URLS
-..* Remove duplicates if more than 1 blocklist
-..* Allow passing of URL on commandline for blocklist
+* Add exist checking for URLS
+* Remove duplicates if more than 1 blocklist
+* Allow passing of URL on commandline for blocklist
