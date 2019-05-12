@@ -12,7 +12,7 @@ https://github.com/StevenBlack/hosts
 ---
 If server supports it will check if blocklist needs updating first, so the list can be updated from a cron job.
 
-To run from cron, create an executable file in /etc/cron.monthly/
+To run from cron, create an executable bash script in /etc/cron.monthly/ with the command required.
 
 ````
 usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-r] [BL [BL ...]] positional arguments:
