@@ -1,6 +1,6 @@
 # blocklist2unbound
-#
-# Author -- Duncan Bellamy
+
+Author -- Duncan Bellamy
 ---
 Convert host file blocklists to unbound blocklists.
 
