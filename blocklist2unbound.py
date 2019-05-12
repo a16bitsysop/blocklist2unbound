@@ -4,9 +4,10 @@ import urllib.request
 import os.path
 import subprocess
 
-modstring = "#MTIME:"
-outputpostfix = ".block.conf"
-outputdir = "/etc/unbound/unbound.conf.d"
+modstring = '#MTIME:'
+outputpostfix = '.block.conf'
+outputdir = '/etc/unbound/unbound.conf.d'
+dot = '. '
 
 blocklists = 	{
 		'sbuni':{
@@ -74,12 +75,12 @@ blocklists = 	{
 		'url': 'http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts',
 		}, }
 
-def check_file(file,url):
-	print('Checking:',url)
+def check_file(file, url, force):
+	print('Checking:', url)
 	exists = os.path.isfile(file)
-	if exists:
+	if exists and not force:
 		# read timestamp
-		oldfile = open(file,'r')
+		oldfile = open(file, 'r')
 		lastmod = oldfile.readline().split(modstring,1)[1].rstrip()
 		oldfile.close()
 	else:
@@ -107,7 +108,7 @@ def check_file(file,url):
 	if modified and modified == lastmod:
 		print('\tLocal file up to date')
 	else:
-		output = open(file,'w')
+		output = open(file, 'w')
 		if modified:
 			print('\tNeeds update')
 			output.write(modstring + modified + '\n')
@@ -115,24 +116,26 @@ def check_file(file,url):
 			print('\tNo modified header from server')
 		output.write('server:\n')
 		print('\tDownloading...')
-		download_blocklist(output,data)
+		download_blocklist(output, data)
 	print('\tDone')
 	return
 
 
 
-def download_blocklist(Poutput,Pdata):
+def download_blocklist(Poutput, Pdata):
 
 	for line in Pdata:
 		string_line = line.decode('utf-8').strip()
 		if string_line and string_line.startswith('0.0.0.0'):
 			string_line = string_line.strip('0.0.0.0').lstrip().split(' ',1)[0]
-			if len(string_line) > 4: Poutput.write('local-data: \"' + string_line + '. IN A 127.0.0.1\"\n')
+			if len(string_line) > 4: Poutput.write('local-data: \"' + string_line + dot + 'IN A 127.0.0.1\"\n')
 	return
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--show', action='store_true', help='show availible blocklists')
 parser.add_argument('-o', '--outputdir', type=str, help='directory to write files to (default /etc/unbound/unbound.conf.d')
+parser.add_argument('-n', '--nodot', action='store_true', help='do not add a trailing \'.\' to domain name')
+parser.add_argument('-f', '--force', action='store_true', help='do not check if needs update')
 parser.add_argument('-r', '--reload', action='store_true', help='reload unbound after generating files')
 parser.add_argument('blocklist', metavar='BL', type=str, nargs='*', help='blocklist(s) to generate')
 args = parser.parse_args()
@@ -156,6 +159,8 @@ if args.outputdir:
 		outputdir = args.outputdir
 	else:
 		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
+if args.nodot:
+	dot = ' '
 if args.blocklist:
 	for record in args.blocklist:
 		if record in blocklists:
@@ -163,7 +168,7 @@ if args.blocklist:
 			print('Desc:\t', blocklists[record]['desc'])
 			print('File:\t', outputdir + '/' + record + outputpostfix)
 			print('URL:\t', blocklists[record]['url'])
-			check_file( outputdir + '/' + record + outputpostfix, blocklists[record]['url'])
+			check_file( outputdir + '/' + record + outputpostfix, blocklists[record]['url'], args.force)
 
 		else:
 			sys.exit('Error! No blocklist with id: ' + record)
