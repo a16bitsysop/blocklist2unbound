@@ -86,7 +86,23 @@ def check_file(file,url):
 		# nothing to read!
 		lastmod = ''
 
-	data = urllib.request.urlopen(url)
+	try:
+		data = urllib.request.urlopen(url)
+	except urllib.error.HTTPError as e:
+		if hasattr(e, 'reason'):
+			print ('We failed to reach a server: ', e.reason)
+		elif hasattr(e, 'code'):
+			print ('The server couldn\'t fulfill the request: ', e.code)
+		else:
+			print ('unknown error')
+		sys.exit()
+	except urllib.error.URLError as e:
+		if hasattr(e, 'reason'):
+			print('URL Error: ', e.reason)
+		else:
+			print ('unknown error')
+		sys.exit()
+
 	modified = data.getheader('last-modified')
 	if modified and modified == lastmod:
 		print('\tLocal file up to date')
@@ -136,6 +152,7 @@ if args.show:
 		print('\t-- Description: ', blocklists[record]['desc'])
 if args.outputdir:
 	if os.path.isdir(args.outputdir):
+		args.outputdir = args.outputdir.rstrip('\/')
 		outputdir = args.outputdir
 	else:
 		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
