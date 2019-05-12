@@ -2,6 +2,7 @@
 import argparse, sys
 import urllib.request
 import os.path
+import subprocess
 
 modstring = "#MTIME:"
 outputpostfix = ".block.conf"
@@ -116,6 +117,7 @@ def download_blocklist(Poutput,Pdata):
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--show', action='store_true', help='show availible blocklists')
 parser.add_argument('-o', '--outputdir', type=str, help='directory to write files to (default /etc/unbound/unbound.conf.d')
+parser.add_argument('-r', '--reload', action='store_true', help='reload unbound after generating files')
 parser.add_argument('blocklist', metavar='BL', type=str, nargs='*', help='blocklist(s) to generate')
 args = parser.parse_args()
 
@@ -149,3 +151,6 @@ if args.blocklist:
 		else:
 			sys.exit('Error! No blocklist with id: ' + record)
 
+if args.blocklist and args.reload:
+	print('Reloading unbound')
+	subprocess.run(['unbound-control', 'reload'])
