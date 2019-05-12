@@ -20,9 +20,12 @@ usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-r] [BL [BL ...]] position
   -h, --help show this help message and exit
   -s, --show show availible blocklists
   -o OUTPUTDIR, --outputdir OUTPUTDIR directory to write files to (default /etc/unbound/unbound.conf.d)
-  -r, --reload          reload unbound after generating files
+  -n, --nodot do not add a trailing '.' to domain name
+  -f, --force do not check if needs update
+  -r, --reload reload unbound after generating files
 ````
 
 TODO:
 * Remove duplicates if more than 1 blocklist
 * Allow passing of URL on commandline for blocklist
+
