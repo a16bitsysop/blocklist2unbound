@@ -19,3 +19,8 @@ usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-r] [BL [BL ...]] position
   -o OUTPUTDIR, --outputdir OUTPUTDIR directory to write files to (default /etc/unbound/unbound.conf.d)
   -r, --reload          reload unbound after generating files
 ''''
+
+TODO:
+Add exist checking for URLS
+Remove duplicates if more than 1 blocklist
+Allow passing of URL on commandline for blocklist
