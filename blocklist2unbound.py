@@ -91,25 +91,26 @@ def check_file(file, url, force):
 		data = urllib.request.urlopen(url)
 	except urllib.error.HTTPError as e:
 		if hasattr(e, 'reason'):
-			print ('We failed to reach a server: ', e.reason)
+			sys.exit('We failed to reach a server: ' + e.reason)
 		elif hasattr(e, 'code'):
-			print ('The server couldn\'t fulfill the request: ', e.code)
+			sys.exit('The server couldn\'t fulfill the request: ' + e.code)
 		else:
-			print ('unknown error')
-		sys.exit()
+			sys.exit('unknown error')
 	except urllib.error.URLError as e:
 		if hasattr(e, 'reason'):
-			print('URL Error: ', e.reason)
+			sys.exit('URL Error: ' + e.reason)
 		else:
-			print ('unknown error')
-		sys.exit()
+			sys.exit('unknown error')
 
 	modified = data.getheader('last-modified')
 	if modified and modified == lastmod:
 		print('\tLocal file up to date')
 		return False
 	else:
-		output = open(file, 'w')
+		try:
+			output = open(file, 'w')
+		except PermissionError:
+			sys.exit('File Error: Permission denied writing to ' + file)
 		if modified:
 			print('\tNeeds update')
 			output.write(modstring + modified + '\n')
@@ -146,9 +147,8 @@ parser.add_argument('blocklist', metavar='BL', type=str, nargs='*', help='blockl
 args = parser.parse_args()
 
 if len(sys.argv) == 1:
-	print('No arguments specified')
 	parser.print_help()
-	sys.exit()
+	sys.exit('No arguments specified')
 
 if args.show:
 	print('Availible blocklists are:')
