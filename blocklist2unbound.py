@@ -114,6 +114,7 @@ def check_file(file, url, force):
 			output.write(modstring + modified + '\n')
 		else:
 			print('\tNo modified header from server')
+#Start creating unbound conf file
 		output.write('server:\n')
 		print('\tDownloading...')
 		download_blocklist(output, data)
@@ -126,8 +127,11 @@ def download_blocklist(Poutput, Pdata):
 
 	for line in Pdata:
 		string_line = line.decode('utf-8').strip()
+#Only interested in lines starting with '0.0.0.0'
 		if string_line and string_line.startswith('0.0.0.0'):
+#Remove that and anything after domain name 
 			string_line = string_line.strip('0.0.0.0').lstrip().split(' ',1)[0]
+#Write out unbound format to unbound conf file with trailing dot if needed
 			if len(string_line) > 4: Poutput.write('local-data: \"' + string_line + dot + 'IN A 127.0.0.1\"\n')
 	return
 
