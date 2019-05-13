@@ -107,6 +107,7 @@ def check_file(file, url, force):
 	modified = data.getheader('last-modified')
 	if modified and modified == lastmod:
 		print('\tLocal file up to date')
+		return False
 	else:
 		output = open(file, 'w')
 		if modified:
@@ -119,7 +120,7 @@ def check_file(file, url, force):
 		print('\tDownloading...')
 		download_blocklist(output, data)
 	print('\tDone')
-	return
+	return True
 
 
 
@@ -165,6 +166,8 @@ if args.outputdir:
 		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
 if args.nodot:
 	dot = ' '
+
+needsreload = False
 if args.blocklist:
 	for record in args.blocklist:
 		if record in blocklists:
@@ -172,11 +175,12 @@ if args.blocklist:
 			print('Desc:\t', blocklists[record]['desc'])
 			print('File:\t', outputdir + '/' + record + outputpostfix)
 			print('URL:\t', blocklists[record]['url'])
-			check_file( outputdir + '/' + record + outputpostfix, blocklists[record]['url'], args.force)
+			if check_file( outputdir + '/' + record + outputpostfix, blocklists[record]['url'], args.force):
+				needsreload = True
 
 		else:
 			sys.exit('Error! No blocklist with id: ' + record)
 
-if args.blocklist and args.reload:
+if args.blocklist and args.reload and needsreload:
 	print('Reloading unbound')
 	subprocess.run(['unbound-control', 'reload'])
