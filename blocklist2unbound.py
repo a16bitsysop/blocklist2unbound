@@ -75,13 +75,13 @@ blocklists = 	{
 		'url': 'http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts',
 		}, }
 
-def check_file(file, url, force):
+def check_file(file, url, force, ishostnamelist):
 	print('Checking:', url)
 	#check if local file exists if force update not used
 	if os.path.isfile(file) and not force:
-		# read timestamp from local file
+		# read timestamp from local file was [1]
 		oldfile = open(file, 'r')
-		lastmod = oldfile.readline().split(modstring,1)[1].rstrip()
+		lastmod = oldfile.readline().split(modstring,1)[-1].rstrip()
 		oldfile.close()
 	else:
 		# local file doesn't exist or force update used so make date null
@@ -120,19 +120,22 @@ def check_file(file, url, force):
 		#Start creating unbound conf file
 		output.write('server:\n')
 		print('\tDownloading...')
-		download_blocklist(output, data)
+		download_blocklist(output, data, ishostnamelist)
 	print('\tDone')
 	return True
 
 
 
-def download_blocklist(Poutput, Pdata):
+def download_blocklist(Poutput, Pdata, Pishostnamelist):
 
 	for line in Pdata:
 		string_line = line.decode('utf-8').strip()
+		#Strip comment lines (for hostname list files)
+		if string_line.startswith('#'):
+			continue
 		#Only interested in lines starting with '0.0.0.0'
-		if string_line and string_line.startswith('0.0.0.0'):
-			#Remove '0.0.0.0' and anything after domain name 
+		if string_line and (string_line.startswith('0.0.0.0') or Pishostnamelist):
+			#Remove '0.0.0.0' and anything after domain name was [0]
 			string_line = string_line.strip('0.0.0.0').lstrip().split(' ',1)[0]
 			#Write out unbound format to unbound conf file with trailing dot if needed
 			if len(string_line) > 4: Poutput.write('local-data: \"' + string_line + dot + 'IN A 127.0.0.1\"\n')
@@ -144,6 +147,8 @@ parser.add_argument('-o', '--outputdir', type=str, help='directory to write file
 parser.add_argument('-n', '--nodot', action='store_true', help='do not add a trailing \'.\' to domain name')
 parser.add_argument('-f', '--force', action='store_true', help='do not check if needs update')
 parser.add_argument('-r', '--reload', action='store_true', help='reload unbound after generating files')
+parser.add_argument('-u', '--url', type=str, help='url of blocklist to download')
+parser.add_argument('-l', '--list', action='store_true', help='URL is a list of hostnames not a host file')
 parser.add_argument('blocklist', metavar='BL', type=str, nargs='*', help='blocklist(s) to generate')
 args = parser.parse_args()
 
@@ -172,16 +177,30 @@ needsreload = False
 if args.blocklist:
 	for record in args.blocklist:
 		if record in blocklists:
+			blfile = outputdir + '/' + record + outputpostfix
 			print('Generating Blocklist:\t', record)
 			print('Desc:\t', blocklists[record]['desc'])
-			print('File:\t', outputdir + '/' + record + outputpostfix)
+			print('File:\t', blfile)
 			print('URL:\t', blocklists[record]['url'])
-			if check_file( outputdir + '/' + record + outputpostfix, blocklists[record]['url'], args.force):
+			if check_file(blfile, blocklists[record]['url'], args.force, False):
 				needsreload = True
 
 		else:
 			sys.exit('Error! No blocklist with id: ' + record)
 
+if args.url:
+	print('Checking url: ', args.url)
+	urlparsed = urllib.parse.urlsplit(args.url)
+	hostname = urlparsed.hostname.replace('.', '_')
+	path = urlparsed.path.replace('/', '')
+	print('hostname: ', hostname)
+	print('path: ', path)
+	blfile = outputdir + '/' + hostname + '.' + path + outputpostfix
+	print('saving as: ', blfile)
+	if check_file(blfile, args.url, args.force, args.list):
+		needsreload = True
+
 if args.blocklist and args.reload and needsreload:
 	print('Reloading unbound')
 	subprocess.run(['unbound-control', 'reload'])
+
