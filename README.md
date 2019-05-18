@@ -1,8 +1,8 @@
 # blocklist2unbound
 
-###Author -- Duncan Bellamy
+Author -- Duncan Bellamy
 ---
-###Convert host file blocklists and domain name lists to unbound blocklists.
+Convert host file blocklists and domain name lists to unbound blocklists.
 
 Based on: 
 https://github.com/Aracktus/DNS-Unbound-Blocklist-Downloader
