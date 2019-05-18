@@ -1,13 +1,13 @@
 # blocklist2unbound
 
-Author -- Duncan Bellamy
+###Author -- Duncan Bellamy
 ---
-Convert host file blocklists to unbound blocklists.
+###Convert host file blocklists and domain name lists to unbound blocklists.
 
 Based on: 
 https://github.com/Aracktus/DNS-Unbound-Blocklist-Downloader
 
-Updated to python 3 and changed blocklist to Steve Black at: 
+Updated to python 3 and changed blocklists to Steve Black at: 
 https://github.com/StevenBlack/hosts
 ---
 If server supports it will check if blocklist needs updating first, so the list can be updated from a cron job.
@@ -32,7 +32,6 @@ optional arguments:
   -f, --force           do not check if needs update
   -r, --reload          reload unbound after generating files
   -u URL, --url URL     url of blocklist to download
-  -l, --list            URL is a list of hostnames not a host file
 ````
 
 TODO:
