@@ -16,7 +16,6 @@ To run from cron, create an executable bash script in /etc/cron.monthly/ with th
 
 ````
 usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-n] [-f] [-r] [-u URL]
-                            [-l]
                             [BL [BL ...]]
 
 positional arguments:
