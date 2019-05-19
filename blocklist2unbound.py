@@ -222,4 +222,4 @@ if args.url:
 
 if args.blocklist and args.reload and needsreload:
 	print('Reloading unbound')
-	subprocess.run(['unbound-control', 'reload'])
+	subprocess.run(['/usr/bin/env', 'unbound-control', 'reload'])
