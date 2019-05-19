@@ -7,10 +7,12 @@ import re
 
 #domain validating regex from O'Reily regular expressions cookbook
 domainregex = re.compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
+ipregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
 modstring = '#MTIME:'
 outputpostfix = '.block.conf'
 outputdir = '/etc/unbound/unbound.conf.d'
 dot = '. '
+blockip = '0.0.0.0'
 
 blocklists = 	{
 		'sbuni':{
@@ -147,13 +149,14 @@ def download_blocklist(Poutput, Pdata):
 				if parsed:
 					gotitems = True
 					#Write out unbound format to conf file with trailing dot if needed
-					if len(parsed.group()) > 4: Poutput.write('local-data: \"' + parsed.group() + dot + 'IN A 127.0.0.1\"\n')
+					if len(parsed.group()) > 4: Poutput.write('local-data: \"' + parsed.group() + dot + 'IN A ' + blockip + '\"\n')
 	return gotitems
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--show', action='store_true', help='show availible blocklists')
 parser.add_argument('-o', '--outputdir', type=str, help='directory to write files to (default /etc/unbound/unbound.conf.d')
 parser.add_argument('-n', '--nodot', action='store_true', help='do not add a trailing \'.\' to domain name')
+parser.add_argument('-i', '--ip', type=str, help='use IP in created blocklist instead of \"0.0.0.0\"')
 parser.add_argument('-f', '--force', action='store_true', help='do not check if needs update')
 parser.add_argument('-r', '--reload', action='store_true', help='reload unbound after generating files')
 parser.add_argument('-u', '--url', type=str, help='url of blocklist to download')
@@ -180,6 +183,15 @@ if args.outputdir:
 		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
 if args.nodot:
 	dot = ' '
+
+if args.ip:
+	parsed = ipregex.match(args.ip)
+	if parsed:
+		#remove leading 0's in ip address
+		blockip = '.'.join(str(int(i)) for i in parsed.group().split('.'))
+		print('Using ip address: ', blockip)
+	else:
+		sys.exit('Invalid ip address: ' + args.ip)
 
 needsreload = False
 if args.blocklist:

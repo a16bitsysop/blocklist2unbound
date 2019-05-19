@@ -15,7 +15,7 @@ If server supports it will check if blocklist needs updating first, so the list 
 To run from cron, create an executable bash script in /etc/cron.monthly/ with the command required.
 
 ````
-usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-n] [-f] [-r] [-u URL]
+usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-n] [-i IP] [-f] [-r] [-u URL]
                             [BL [BL ...]]
 
 positional arguments:
@@ -26,8 +26,9 @@ optional arguments:
   -s, --show            show availible blocklists
   -o OUTPUTDIR, --outputdir OUTPUTDIR
                         directory to write files to (default
-                        /etc/unbound/unbound.conf.d
+                        /etc/unbound/unbound.conf.d)
   -n, --nodot           do not add a trailing '.' to domain name
+  -i IP, --ip IP        use IP in created blocklist instead of "0.0.0.0"
   -f, --force           do not check if needs update
   -r, --reload          reload unbound after generating files
   -u URL, --url URL     url of blocklist to download
