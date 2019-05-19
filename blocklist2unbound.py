@@ -128,6 +128,7 @@ def check_file(file, url, force):
 		else:
 			#remove file if no domains to block
 			os.remove(file)
+			print('\tNo domains found to add to blockist')
 	print('\tDone')
 	return retval
 
@@ -136,9 +137,12 @@ def check_file(file, url, force):
 def download_blocklist(Poutput, Pdata):
 	gotitems = False
 	for line in Pdata:
+		#turn line into string and strip leading 0.0.0.0 if present then return next word only
 		string_line = line.decode('utf-8').strip('0.0.0.0').lstrip().split(' ',1)[0]
-		if string_line and '.' in string_line and not string_line.startswith(('#', '127.0.0.1', '0.0.0.0', '255.255.255.255')):
+		#check there is a word and  word has at least one '.' and is not a comment
+		if string_line and '.' in string_line and not string_line.startswith('#'):
 			if string_line:
+				#use domain validation regex only on stripped out word to avoid false positives
 				parsed = domainregex.match(string_line)
 				if parsed:
 					gotitems = True
@@ -197,10 +201,10 @@ if args.url:
 	urlparsed = urllib.parse.urlsplit(args.url)
 	hostname = urlparsed.hostname.replace('.', '_')
 	path = urlparsed.path.replace('/', '')
-	print('hostname: ', hostname)
-	print('path: ', path)
+	print('\tProcessed hostname: ', hostname)
+	print('\tProcessed path: ', path)
 	blfile = outputdir + '/' + hostname + '.' + path + outputpostfix
-	print('saving as: ', blfile)
+	print('\tSaving as: ', blfile)
 	if check_file(blfile, args.url, args.force):
 		needsreload = True
 
