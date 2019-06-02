@@ -11,7 +11,7 @@ ipregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0
 modstring = '#MTIME:'
 outputpostfix = '.block.conf'
 outputdir = '/etc/unbound/unbound.conf.d'
-dot = '. '
+dot = '.'
 blockip = '0.0.0.0'
 
 blocklists = 	{
@@ -149,7 +149,9 @@ def download_blocklist(Poutput, Pdata):
 				if parsed:
 					gotitems = True
 					#Write out unbound format to conf file with trailing dot if needed
-					if len(parsed.group()) > 4: Poutput.write('local-data: \"' + parsed.group() + dot + 'IN A ' + blockip + '\"\n')
+					if len(parsed.group()) > 4: 
+						Poutput.write('local-data: \"' + parsed.group() + dot + '\" redirect\n')
+						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockip + '\"\n')
 	return gotitems
 
 parser = argparse.ArgumentParser()
