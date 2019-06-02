@@ -150,8 +150,8 @@ def download_blocklist(Poutput, Pdata):
 					gotitems = True
 					#Write out unbound format to conf file with trailing dot if needed
 					if len(parsed.group()) > 4: 
-						Poutput.write('local-data: \"' + parsed.group() + dot + '\" redirect\n')
-						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockip + '\"\n')
+						Poutput.write('local-zone: \"' + parsed.group() + dot.strip() + '\" redirect\n')
+						Poutput.write('local-data: \"' + parsed.group() + dot.strip() + ' IN A ' + blockip + '\"\n')
 	return gotitems
 
 parser = argparse.ArgumentParser()
