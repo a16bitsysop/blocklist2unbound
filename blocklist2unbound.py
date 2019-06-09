@@ -13,6 +13,9 @@ outputpostfix = '.block.conf'
 outputdir = '/etc/unbound/unbound.conf.d'
 dot = '.'
 blockip = '0.0.0.0'
+#path used to start script (link path if link)
+callpath = os.path.abspath(__file__)
+(callpath, _) = os.path.split(callpath)
 
 blocklists = 	{
 		'sbuni':{
@@ -225,3 +228,4 @@ if args.url:
 if args.blocklist and args.reload and needsreload:
 	print('Reloading unbound')
 	subprocess.run(['/usr/bin/env', 'unbound-control', 'reload'])
+
