@@ -13,9 +13,15 @@ outputpostfix = '.block.conf'
 outputdir = '/etc/unbound/unbound.conf.d'
 dot = '.'
 blockip = '0.0.0.0'
+
 #path used to start script (link path if link)
 callpath = os.path.abspath(__file__)
 (callpath, _) = os.path.split(callpath)
+if callpath.startswith('/etc/cron.'):
+	cron = True
+	print('Cron mode enabled')
+else:
+	cron = False
 
 blocklists = 	{
 		'sbuni':{
