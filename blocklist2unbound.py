@@ -13,6 +13,8 @@ outputpostfix = '.block.conf'
 outputdir = '/etc/unbound/unbound.conf.d'
 dot = '.'
 blockip = '0.0.0.0'
+rdot = '{'
+rslash = '}'
 
 #path used to start script (link path if link)
 callpath = os.path.abspath(__file__)
@@ -222,8 +224,8 @@ if args.blocklist:
 if args.url:
 	print('Checking url: ', args.url)
 	urlparsed = urllib.parse.urlsplit(args.url)
-	hostname = urlparsed.hostname.replace('.', '_')
-	path = urlparsed.path.replace('/', '')
+	hostname = urlparsed.hostname.replace('.', rdot)
+	path = urlparsed.path.replace('/', rslash)
 	print('\tProcessed hostname: ', hostname)
 	print('\tProcessed path: ', path)
 	blfile = outputdir + '/' + hostname + '.' + path + outputpostfix
