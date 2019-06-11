@@ -9,12 +9,13 @@ import re
 domainregex = re.compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
 ipregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
 modstring = '#MTIME:'
+urlstring = '#URL '
 outputpostfix = '.block.conf'
 outputdir = '/etc/unbound/unbound.conf.d'
 dot = '.'
 blockip = '0.0.0.0'
-rdot = '{'
-rslash = '}'
+rdot = ':'
+rslash = '_'
 
 #path used to start script (link path if link)
 callpath = os.path.abspath(__file__)
@@ -91,7 +92,7 @@ blocklists = 	{
 		'url': 'http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts',
 		}, }
 
-def check_file(file, url, force):
+def check_file(file, url, force, storeurl=False):
 	retval = False
 	print('Checking:', url)
 	#check if local file exists if force update not used
@@ -134,6 +135,8 @@ def check_file(file, url, force):
 		else:
 			print('\tNo modified header from server')
 		#Start creating unbound conf file
+		if storeurl:
+			output.write(urlstring + url + '\n')
 		output.write('server:\n')
 		print('\tDownloading...')
 		if download_blocklist(output, data):
@@ -230,7 +233,7 @@ if args.url:
 	print('\tProcessed path: ', path)
 	blfile = outputdir + '/' + hostname + '.' + path + outputpostfix
 	print('\tSaving as: ', blfile)
-	if check_file(blfile, args.url, args.force):
+	if check_file(blfile, args.url, args.force, True):
 		needsreload = True
 
 if args.blocklist and args.reload and needsreload:
