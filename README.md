@@ -16,6 +16,8 @@ To run from cron, create a symbolic link to blocklist2unbound from the requiired
 folder.  This enables cronmode and /etc/unbound/unbound.conf.d is scanned for .block.conf files which are then
 updated, if a block file is genrated from a url it is stored in the file and used to update it.
 
+eg:
+# sudo ln -s /usr/local/bin/blocklist2unbound.py /etc/cron.monthly/blocklist2unbound.py
 ````
 usage: blocklist2unbound.py [-h] [-s] [-o OUTPUTDIR] [-n] [-i IP] [-f] [-r] [-u URL]
                             [BL [BL ...]]
