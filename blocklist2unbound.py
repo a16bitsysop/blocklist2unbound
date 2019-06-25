@@ -10,11 +10,12 @@ domainregex = re.compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
 ipregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
 modstring = '#MTIME:'
 urlstring = '#URL '
+maxconflines = 4
 outputpostfix = '.block.conf'
-outputdir = '/etc/unbound/unbound.conf.d'
+outputdir = '/etc/unbound/unbound.conf.d/'
 dot = '.'
 blockip = '0.0.0.0'
-rdot = ':'
+rdot = '-'
 rslash = '_'
 
 #path used to start script (link path if link)
@@ -92,35 +93,74 @@ blocklists = 	{
 		'url': 'http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts',
 		}, }
 
-def check_file(file, url, force, storeurl=False):
+def check_file(file, url, force, storeurl=False, cronmode=False):
+# use thses global variables do not create local ones
+	global blockip
+	global dot
 	retval = False
-	print('Checking:', url)
-	#check if local file exists if force update not used
-	if os.path.isfile(file) and not force:
-		# read timestamp from local file was [1] now [-1] for hostname files
+# check if local file exists
+	if os.path.isfile(file):
 		oldfile = open(file, 'r')
-		lastmod = oldfile.readline().split(modstring,1)[-1].rstrip()
+
+# get timestamp and url from file
+		loop = 0
+		need = 1
+		if cronmode and storeurl:
+			need += 1
+		for line in oldfile:
+			line = line.strip()
+			if line.startswith(modstring):
+# read timestamp from local file was [1] now [-1] for hostname files
+				lastmod = line.split(modstring,1)[-1].rstrip()
+				need -= 1
+			if cronmode and storeurl and line.startswith(urlstring):
+				url = line.split(urlstring,1)[-1].rstrip()
+# decrease by 2 incase no MTIME
+				need -= 2
+			loop += 1
+			if loop > maxconflines or need >= 0:
+				break
+		if cronmode:
+			for line in oldfile:
+				line = line.strip()
+# skip uneeded lines
+				if line.startswith('local-data:'):
+					line = line.replace('\"', '')
+					result = line.partition('IN A')
+# check if hostnames have trailing dot
+					if result[0].rstrip()[-1] == '.':
+						dot = '.'
+					else:
+						dot = ''
+# set block ip from file
+					blockip = result[2].strip()
+					break
+				
+
 		oldfile.close()
+# force update used so make date null
+		if force:
+			lastmod = ''
 	else:
-		# local file doesn't exist or force update used so make date null
-		lastmod = ''
+		print('file not found')
+	print('Checking:', url)
 
 	try:
 		#try and open blocklist url
 		data = urllib.request.urlopen(url)
 	except urllib.error.HTTPError as e:
 		if hasattr(e, 'reason'):
-			sys.exit('We failed to reach a server: ' + e.reason)
+			sys.exit('We failed to reach a server: ' + str(e.reason))
 		elif hasattr(e, 'code'):
 			sys.exit('The server couldn\'t fulfill the request: ' + e.code)
 		else:
 			sys.exit('unknown error')
 	except urllib.error.URLError as e:
 		if hasattr(e, 'reason'):
-			sys.exit('URL Error: ' + e.reason)
+			sys.exit('URL Error: ' + str(e.reason))
 		else:
 			sys.exit('unknown error')
-
+			
 	modified = data.getheader('last-modified')
 	if modified and modified == lastmod:
 		print('\tLocal file up to date')
@@ -134,7 +174,7 @@ def check_file(file, url, force, storeurl=False):
 			output.write(modstring + modified + '\n')
 		else:
 			print('\tNo modified header from server')
-		#Start creating unbound conf file
+# Start creating unbound conf file
 		if storeurl:
 			output.write(urlstring + url + '\n')
 		output.write('server:\n')
@@ -142,7 +182,7 @@ def check_file(file, url, force, storeurl=False):
 		if download_blocklist(output, data):
 			retval = True
 		else:
-			#remove file if no domains to block
+# remove file if no domains to block
 			os.remove(file)
 			print('\tNo domains found to add to blockist')
 	print('\tDone')
@@ -152,25 +192,26 @@ def check_file(file, url, force, storeurl=False):
 
 def download_blocklist(Poutput, Pdata):
 	gotitems = False
+
 	for line in Pdata:
-		#turn line into string and strip leading 0.0.0.0 if present then return next word only
+# turn line into string and strip leading 0.0.0.0 if present then return next word only
 		string_line = line.decode('utf-8').strip('0.0.0.0').lstrip().split(' ',1)[0]
-		#check there is a word and  word has at least one '.' and is not a comment
+# check there is a word and  word has at least one '.' and is not a comment
 		if string_line and '.' in string_line and not string_line.startswith('#'):
 			if string_line:
-				#use domain validation regex only on stripped out word to avoid false positives
+# use domain validation regex only on stripped out word to avoid false positives
 				parsed = domainregex.match(string_line)
 				if parsed:
 					gotitems = True
-					#Write out unbound format to conf file with trailing dot if needed
-					if len(parsed.group()) > 4: 
+# Write out unbound format to conf file with trailing dot if needed
+					if len(parsed.group()) > 4:
 						Poutput.write('local-zone: \"' + parsed.group() + dot + '\" redirect\n')
 						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockip + '\"\n')
 	return gotitems
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--show', action='store_true', help='show availible blocklists')
-parser.add_argument('-o', '--outputdir', type=str, help='directory to write files to (default /etc/unbound/unbound.conf.d')
+parser.add_argument('-o', '--outputdir', type=str, help='directory to write files to (default /etc/unbound/unbound.conf.d/')
 parser.add_argument('-n', '--nodot', action='store_true', help='do not add a trailing \'.\' to domain name')
 parser.add_argument('-i', '--ip', type=str, help='use IP in created blocklist instead of \"0.0.0.0\"')
 parser.add_argument('-f', '--force', action='store_true', help='do not check if needs update')
@@ -178,10 +219,6 @@ parser.add_argument('-r', '--reload', action='store_true', help='reload unbound 
 parser.add_argument('-u', '--url', type=str, help='url of blocklist to download')
 parser.add_argument('blocklist', metavar='BL', type=str, nargs='*', help='blocklist(s) to generate')
 args = parser.parse_args()
-
-if len(sys.argv) == 1:
-	parser.print_help()
-	sys.exit('No arguments specified')
 
 if args.show:
 	print('Availible blocklists are:')
@@ -191,29 +228,59 @@ if args.show:
 		if bllen > 4 and bllen < 8 : print(end='\t')
 		if bllen > 4 and bllen < 15 : print(end='\t')
 		print('\t-- Description: ', blocklists[record]['desc'])
+
 if args.outputdir:
 	if os.path.isdir(args.outputdir):
-		args.outputdir = args.outputdir.rstrip('\/')
 		outputdir = args.outputdir
+# make sure path ends in /
+		if outputdir[-1] != '/':
+			outputdir = outputdir + '/'
 	else:
 		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
+
+needsreload = False
+if cron:
+	args.reload = True
+	args.blockist = ''
+	found = False
+# scan unbound folder to find blocklists
+	contents = os.scandir(outputdir)
+	for entry in contents:
+		if entry.is_file() and entry.name.endswith('.block.conf'):
+			print('found: ', entry.name)
+			blname = entry.name.rsplit('.block.conf',1)[0]
+			if blname in blocklists:
+				print('entry found: ', blname)
+				found = True
+				args.blocklist.append(blname)
+			else:
+				found = True
+				if check_file(outputdir + entry.name, 'none', False, True, True):
+					needsreload = True
+					break
+	if not found:
+		sys.exit('No blocklists found')
+else:
+	if len(sys.argv) == 1:
+		parser.print_help()
+		sys.exit('No arguments specified')
+
 if args.nodot:
 	dot = ''
 
 if args.ip:
 	parsed = ipregex.match(args.ip)
 	if parsed:
-		#remove leading 0's in ip address
+# remove leading 0's in ip address
 		blockip = '.'.join(str(int(i)) for i in parsed.group().split('.'))
-		print('Using ip address: ', blockip)
+		print('Using blockip address: ', blockip)
 	else:
 		sys.exit('Invalid ip address: ' + args.ip)
 
-needsreload = False
 if args.blocklist:
 	for record in args.blocklist:
 		if record in blocklists:
-			blfile = outputdir + '/' + record + outputpostfix
+			blfile = outputdir + record + outputpostfix
 			print('Generating Blocklist:\t', record)
 			print('Desc:\t', blocklists[record]['desc'])
 			print('File:\t', blfile)
@@ -231,7 +298,7 @@ if args.url:
 	path = urlparsed.path.replace('/', rslash)
 	print('\tProcessed hostname: ', hostname)
 	print('\tProcessed path: ', path)
-	blfile = outputdir + '/' + hostname + '.' + path + outputpostfix
+	blfile = outputdir + hostname + '.' + path + outputpostfix
 	print('\tSaving as: ', blfile)
 	if check_file(blfile, args.url, args.force, True):
 		needsreload = True
