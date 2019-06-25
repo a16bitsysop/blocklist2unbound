@@ -12,9 +12,9 @@ https://github.com/Aracktus/DNS-Unbound-Blocklist-Downloader
 ---
 If server supports it will check if blocklist needs updating first, so the list can be updated from a cron job.
 
-To run from cron, create a symbolic link to blocklist2unbound from the requiired /etc/cron.daily|weekly|monthly 
+To run from cron, create a symbolic link to blocklist2unbound.py from the required /etc/cron.daily|weekly|monthly 
 folder.  This enables cronmode and /etc/unbound/unbound.conf.d is scanned for .block.conf files which are then
-updated, if a block file is genrated from a url it is stored in the file and used to update it.
+updated, if a block file is generated from a url it is stored in the file and used to update it.
 
 eg:
 ````
