@@ -5,23 +5,23 @@ import os
 import subprocess
 import re
 
-#domain validating regex from O'Reily regular expressions cookbook
-domainregex = re.compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
-ipregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
-modstring = '#MTIME:'
-urlstring = '#URL '
-maxconflines = 4
-outputpostfix = '.block.conf'
-outputdir = '/etc/unbound/unbound.conf.d/'
+# domain validating regex from O'Reily regular expressions cookbook
+DomainRegex = re.compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
+IPregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
+ModString = '#MTIME:'
+URLstring = '#URL '
+MaxConfLines = 4
+OutputPostfix = '.block.conf'
+OutputDir = '/etc/unbound/unbound.conf.d/'
 dot = '.'
-blockip = '0.0.0.0'
-rdot = '-'
-rslash = '_'
+blockIP = '0.0.0.0'
+rDot = '-'
+rSlash = '_'
 
-#path used to start script (link path if link)
-callpath = os.path.abspath(__file__)
-(callpath, _) = os.path.split(callpath)
-if callpath.startswith('/etc/cron.'):
+# path used to start script (link path if link)
+CallPath = os.path.abspath(__file__)
+(CallPath, _) = os.path.split(CallPath)
+if CallPath.startswith('/etc/cron.'):
 	cron = True
 	print('Cron mode enabled')
 else:
@@ -95,8 +95,9 @@ blocklists = 	{
 
 def check_file(file, url, force, storeurl=False, cronmode=False):
 # use thses global variables do not create local ones
-	global blockip
+	global blockIP
 	global dot
+
 	retval = False
 # check if local file exists
 	if os.path.isfile(file):
@@ -109,44 +110,44 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 			need += 1
 		for line in oldfile:
 			line = line.strip()
-			if line.startswith(modstring):
-# read timestamp from local file was [1] now [-1] for hostname files
-				lastmod = line.split(modstring,1)[-1].rstrip()
+			if line.startswith(ModString):
+# read timestamp from local file
+				lastmod = line.split(ModString,1)[-1].rstrip()
 				need -= 1
-			if cronmode and storeurl and line.startswith(urlstring):
-				url = line.split(urlstring,1)[-1].rstrip()
+			if cronmode and storeurl and line.startswith(URLstring):
+				url = line.split(URLstring,1)[-1].rstrip()
 # decrease by 2 incase no MTIME
 				need -= 2
 			loop += 1
-			if loop > maxconflines or need >= 0:
+			if loop > MaxConfLines or need >= 0:
 				break
 		if cronmode:
 			for line in oldfile:
 				line = line.strip()
-# skip uneeded lines
+# extract ip and and hostname from data line
 				if line.startswith('local-data:'):
 					line = line.replace('\"', '')
 					result = line.partition('IN A')
-# check if hostnames have trailing dot
+# check if hostname has a trailing dot
 					if result[0].rstrip()[-1] == '.':
 						dot = '.'
 					else:
 						dot = ''
-# set block ip from file
-					blockip = result[2].strip()
+# set blockip from file
+					blockIP = result[2].strip()
 					break
-				
+
 
 		oldfile.close()
 # force update used so make date null
 		if force:
 			lastmod = ''
 	else:
-		print('file not found')
+		print('\tPrevious local block file not found')
 	print('Checking:', url)
 
 	try:
-		#try and open blocklist url
+# try and open blocklist url
 		data = urllib.request.urlopen(url)
 	except urllib.error.HTTPError as e:
 		if hasattr(e, 'reason'):
@@ -160,7 +161,7 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 			sys.exit('URL Error: ' + str(e.reason))
 		else:
 			sys.exit('unknown error')
-			
+
 	modified = data.getheader('last-modified')
 	if modified and modified == lastmod:
 		print('\tLocal file up to date')
@@ -171,12 +172,13 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 			sys.exit('File Error: Permission denied writing to: ' + file)
 		if modified:
 			print('\tNeeds update')
-			output.write(modstring + modified + '\n')
+# add modified timestamp to unbound conf file
+			output.write(ModString + modified + '\n')
 		else:
 			print('\tNo modified header from server')
-# Start creating unbound conf file
+# add url to unbound conf file
 		if storeurl:
-			output.write(urlstring + url + '\n')
+			output.write(URLstring + url + '\n')
 		output.write('server:\n')
 		print('\tDownloading...')
 		if download_blocklist(output, data):
@@ -191,33 +193,41 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 
 
 def download_blocklist(Poutput, Pdata):
-	gotitems = False
+	GotItems = False
 
 	for line in Pdata:
 # turn line into string and strip leading 0.0.0.0 if present then return next word only
-		string_line = line.decode('utf-8').strip('0.0.0.0').lstrip().split(' ',1)[0]
-# check there is a word and  word has at least one '.' and is not a comment
-		if string_line and '.' in string_line and not string_line.startswith('#'):
-			if string_line:
+		StringLine = line.decode('utf-8').strip('0.0.0.0').lstrip().split(' ',1)[0]
+# check there is a word and word has at least one '.' and is not a comment
+		if StringLine and '.' in StringLine and not StringLine.startswith('#'):
+			if StringLine:
 # use domain validation regex only on stripped out word to avoid false positives
-				parsed = domainregex.match(string_line)
+				parsed = DomainRegex.match(StringLine)
 				if parsed:
-					gotitems = True
+					GotItems = True
 # Write out unbound format to conf file with trailing dot if needed
 					if len(parsed.group()) > 4:
 						Poutput.write('local-zone: \"' + parsed.group() + dot + '\" redirect\n')
-						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockip + '\"\n')
-	return gotitems
+						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockIP + '\"\n')
+	return GotItems
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--show', action='store_true', help='show availible blocklists')
-parser.add_argument('-o', '--outputdir', type=str, help='directory to write files to (default /etc/unbound/unbound.conf.d/')
-parser.add_argument('-n', '--nodot', action='store_true', help='do not add a trailing \'.\' to domain name')
-parser.add_argument('-i', '--ip', type=str, help='use IP in created blocklist instead of \"0.0.0.0\"')
-parser.add_argument('-f', '--force', action='store_true', help='do not check if needs update')
-parser.add_argument('-r', '--reload', action='store_true', help='reload unbound after generating files')
-parser.add_argument('-u', '--url', type=str, help='url of blocklist to download')
-parser.add_argument('blocklist', metavar='BL', type=str, nargs='*', help='blocklist(s) to generate')
+parser.add_argument('-s', '--show', action='store_true',\
+help='show availible blocklists')
+parser.add_argument('-o', '--outputdir', type=str,\
+help='default /etc/unbound/unbound.conf.d/')
+parser.add_argument('-n', '--nodot', action='store_true',\
+help='do not add a trailing \'.\' to domain name')
+parser.add_argument('-i', '--ip', type=str,\
+help='use IP in created blocklist instead of \"0.0.0.0\"')
+parser.add_argument('-f', '--force', action='store_true',\
+help='do not check if needs update')
+parser.add_argument('-r', '--reload', action='store_true',\
+help='reload unbound after generating files')
+parser.add_argument('-u', '--url', type=str,\
+help='url of blocklist to download')
+parser.add_argument('blocklist', metavar='BL', type=str, nargs='*',\
+help='blocklist(s) to generate')
 args = parser.parse_args()
 
 if args.show:
@@ -231,20 +241,20 @@ if args.show:
 
 if args.outputdir:
 	if os.path.isdir(args.outputdir):
-		outputdir = args.outputdir
+		OutputDir = args.outputdir
 # make sure path ends in /
-		if outputdir[-1] != '/':
-			outputdir = outputdir + '/'
+		if OutputDir[-1] != '/':
+			OutputDir = OutputDir + '/'
 	else:
 		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
 
-needsreload = False
+NeedsReload = False
 if cron:
 	args.reload = True
 	args.blockist = ''
 	found = False
 # scan unbound folder to find blocklists
-	contents = os.scandir(outputdir)
+	contents = os.scandir(OutputDir)
 	for entry in contents:
 		if entry.is_file() and entry.name.endswith('.block.conf'):
 			print('found: ', entry.name)
@@ -255,8 +265,8 @@ if cron:
 				args.blocklist.append(blname)
 			else:
 				found = True
-				if check_file(outputdir + entry.name, 'none', False, True, True):
-					needsreload = True
+				if check_file(OutputDir + entry.name, 'none', False, True, True):
+					NeedsReload = True
 					break
 	if not found:
 		sys.exit('No blocklists found')
@@ -269,24 +279,24 @@ if args.nodot:
 	dot = ''
 
 if args.ip:
-	parsed = ipregex.match(args.ip)
+	parsed = IPregex.match(args.ip)
 	if parsed:
 # remove leading 0's in ip address
-		blockip = '.'.join(str(int(i)) for i in parsed.group().split('.'))
-		print('Using blockip address: ', blockip)
+		blockIP = '.'.join(str(int(i)) for i in parsed.group().split('.'))
+		print('Using blockip address: ', blockIP)
 	else:
 		sys.exit('Invalid ip address: ' + args.ip)
 
 if args.blocklist:
 	for record in args.blocklist:
 		if record in blocklists:
-			blfile = outputdir + record + outputpostfix
+			blfile = OutputDir + record + OutputPostfix
 			print('Generating Blocklist:\t', record)
 			print('Desc:\t', blocklists[record]['desc'])
 			print('File:\t', blfile)
 			print('URL:\t', blocklists[record]['url'])
 			if check_file(blfile, blocklists[record]['url'], args.force):
-				needsreload = True
+				NeedsReload = True
 
 		else:
 			sys.exit('Error! No blocklist with id: ' + record)
@@ -294,16 +304,15 @@ if args.blocklist:
 if args.url:
 	print('Checking url: ', args.url)
 	urlparsed = urllib.parse.urlsplit(args.url)
-	hostname = urlparsed.hostname.replace('.', rdot)
-	path = urlparsed.path.replace('/', rslash)
+	hostname = urlparsed.hostname.replace('.', rDot)
+	path = urlparsed.path.replace('/', rSlash)
 	print('\tProcessed hostname: ', hostname)
 	print('\tProcessed path: ', path)
-	blfile = outputdir + hostname + '.' + path + outputpostfix
+	blfile = OutputDir + hostname + '.' + path + OutputPostfix
 	print('\tSaving as: ', blfile)
 	if check_file(blfile, args.url, args.force, True):
-		needsreload = True
+		NeedsReload = True
 
-if args.blocklist and args.reload and needsreload:
+if args.blocklist and args.reload and NeedsReload:
 	print('Reloading unbound')
 	subprocess.run(['/usr/bin/env', 'unbound-control', 'reload'])
-
