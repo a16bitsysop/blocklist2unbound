@@ -93,36 +93,36 @@ blocklists = 	{
 		'url': 'http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts',
 		}, }
 
-def check_file(file, url, force, storeurl=False, cronmode=False):
+def check_file(file, url, force, StoreUrl=False, CronMode=False):
 # use thses global variables do not create local ones
 	global blockIP
 	global dot
 
-	retval = False
+	GotList = False
 # check if local file exists
 	if os.path.isfile(file):
-		oldfile = open(file, 'r')
+		OldFile = open(file, 'r')
 
 # get timestamp and url from file
 		loop = 0
 		need = 1
-		if cronmode and storeurl:
+		if CronMode and StoreUrl:
 			need += 1
-		for line in oldfile:
+		for line in OldFile:
 			line = line.strip()
 			if line.startswith(ModString):
 # read timestamp from local file
-				lastmod = line.split(ModString,1)[-1].rstrip()
+				LastMod = line.split(ModString,1)[-1].rstrip()
 				need -= 1
-			if cronmode and storeurl and line.startswith(URLstring):
+			if CronMode and StoreUrl and line.startswith(URLstring):
 				url = line.split(URLstring,1)[-1].rstrip()
 # decrease by 2 incase no MTIME
 				need -= 2
 			loop += 1
 			if loop > MaxConfLines or need >= 0:
 				break
-		if cronmode:
-			for line in oldfile:
+		if CronMode:
+			for line in OldFile:
 				line = line.strip()
 # extract ip and and hostname from data line
 				if line.startswith('local-data:'):
@@ -138,10 +138,10 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 					break
 
 
-		oldfile.close()
+		OldFile.close()
 # force update used so make date null
 		if force:
-			lastmod = ''
+			LastMod = ''
 	else:
 		print('\tPrevious local block file not found')
 	print('Checking:', url)
@@ -163,7 +163,7 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 			sys.exit('unknown error')
 
 	modified = data.getheader('last-modified')
-	if modified and modified == lastmod:
+	if modified and modified == LastMod:
 		print('\tLocal file up to date')
 	else:
 		try:
@@ -177,18 +177,18 @@ def check_file(file, url, force, storeurl=False, cronmode=False):
 		else:
 			print('\tNo modified header from server')
 # add url to unbound conf file
-		if storeurl:
+		if StoreUrl:
 			output.write(URLstring + url + '\n')
 		output.write('server:\n')
 		print('\tDownloading...')
 		if download_blocklist(output, data):
-			retval = True
+			GotList = True
 		else:
 # remove file if no domains to block
 			os.remove(file)
 			print('\tNo domains found to add to blockist')
 	print('\tDone')
-	return retval
+	return GotList
 
 
 
