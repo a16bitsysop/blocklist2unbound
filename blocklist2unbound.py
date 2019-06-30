@@ -93,7 +93,7 @@ blocklists = 	{
 		'url': 'http://sbc.io/hosts/alternates/fakenews-gambling-porn-social/hosts',
 		}, }
 
-def check_file(file, url, force, StoreUrl=False, CronMode=False):
+def check_file(file, url, force, StoreUrl=False):
 # use thses global variables do not create local ones
 	global blockIP
 	global dot
@@ -106,7 +106,7 @@ def check_file(file, url, force, StoreUrl=False, CronMode=False):
 # get timestamp and url from file
 		loop = 0
 		need = 1
-		if CronMode and StoreUrl:
+		if cron and StoreUrl:
 			need += 1
 		for line in OldFile:
 			line = line.strip()
@@ -114,14 +114,14 @@ def check_file(file, url, force, StoreUrl=False, CronMode=False):
 # read timestamp from local file
 				LastMod = line.split(ModString,1)[-1].rstrip()
 				need -= 1
-			if CronMode and StoreUrl and line.startswith(URLstring):
+			if cron and StoreUrl and line.startswith(URLstring):
 				url = line.split(URLstring,1)[-1].rstrip()
 # decrease by 2 incase no MTIME
 				need -= 2
 			loop += 1
 			if loop > MaxConfLines or need >= 0:
 				break
-		if CronMode:
+		if cron:
 			for line in OldFile:
 				line = line.strip()
 # extract ip and and hostname from data line
@@ -143,6 +143,7 @@ def check_file(file, url, force, StoreUrl=False, CronMode=False):
 		if force:
 			LastMod = ''
 	else:
+		LastMod = ''
 		print('\tPrevious local block file not found')
 	print('Checking:', url)
 
@@ -196,13 +197,13 @@ def download_blocklist(Poutput, Pdata):
 	GotItems = False
 
 	for line in Pdata:
-# turn line into string and strip leading 0.0.0.0 if present then return next word only
-		StringLine = line.decode('utf-8').strip('0.0.0.0').lstrip().split(' ',1)[0]
+# turn line into string, strip 0.0.0.0 if present then return next word only
+		StrLine = line.decode('utf-8').strip('0.0.0.0').lstrip().split(' ',1)[0]
 # check there is a word and word has at least one '.' and is not a comment
-		if StringLine and '.' in StringLine and not StringLine.startswith('#'):
-			if StringLine:
+		if StrLine and '.' in StrLine and not StrLine.startswith('#'):
+			if StrLine:
 # use domain validation regex only on stripped out word to avoid false positives
-				parsed = DomainRegex.match(StringLine)
+				parsed = DomainRegex.match(StrLine)
 				if parsed:
 					GotItems = True
 # Write out unbound format to conf file with trailing dot if needed
@@ -265,7 +266,7 @@ if cron:
 				args.blocklist.append(blname)
 			else:
 				found = True
-				if check_file(OutputDir + entry.name, 'none', False, True, True):
+				if check_file(OutputDir + entry.name, 'none', False, True):
 					NeedsReload = True
 					break
 	if not found:
