@@ -10,7 +10,7 @@ https://github.com/Aracktus/DNS-Unbound-Blocklist-Downloader
 #### Updated to python 3 and changed blocklists to Steve Black at: 
 #### https://github.com/StevenBlack/hosts
 ---
-If server supports it will check if blocklist needs updating first, so the list can be updated from a cron job.
+If the remote server supports it will check if the blocklist needs updating first, so it can be updated from a cron job as well.
 
 To run from cron, create a symbolic link to blocklist2unbound.py from the required /etc/cron.daily|weekly|monthly 
 folder.  This enables cronmode and /etc/unbound/unbound.conf.d is scanned for .block.conf files which are then
