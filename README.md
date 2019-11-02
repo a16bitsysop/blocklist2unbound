@@ -14,11 +14,11 @@ If server supports it will check if blocklist needs updating first, so the list 
 
 To run from cron, create a symbolic link to blocklist2unbound.py from the required /etc/cron.daily|weekly|monthly 
 folder.  This enables cronmode and /etc/unbound/unbound.conf.d is scanned for .block.conf files which are then
-updated, if a block file is generated from a url it is stored in the file and used to update it.
+updated, if a block file is generated from a url it is stored in the file and used to update it.  Using a .py extenstion in the cron.daily|weekly|monthly folder can cause run-parts to not execute the script so the link should have no extension.
 
 eg:
 ````
-# sudo ln -s /usr/local/bin/blocklist2unbound.py /etc/cron.monthly/blocklist2unbound.py
+# sudo ln -s /usr/local/bin/blocklist2unbound.py /etc/cron.weekly/blocklist2unbound
 ````
 
 ````
