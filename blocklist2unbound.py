@@ -94,7 +94,7 @@ blocklists = 	{
 		}, }
 
 def check_file(file, url, force, StoreUrl=False):
-# use thses global variables do not create local ones
+# use these global variables do not create local ones
 	global blockIP
 	global dot
 
