@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-import argparse, sys
-import urllib.request
-import os
-import subprocess
-import re
+from argparse import ArgumentParser
+from sys import argv, exit
+from urllib import parse, error, request
+from os import path, remove, scandir
+from subprocess import run
+from re import compile
 
 # domain validating regex from O'Reily regular expressions cookbook
-DomainRegex = re.compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
-IPregex = re.compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
+DomainRegex = compile(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$')
+IPregex = compile(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
 ModString = '#MTIME:'
 URLstring = '#URL '
 MaxConfLines = 4
@@ -19,8 +20,8 @@ rDot = '-'
 rSlash = '_'
 
 # path used to start script (link path if link)
-CallPath = os.path.abspath(__file__)
-(CallPath, _) = os.path.split(CallPath)
+CallPath = path.abspath(__file__)
+(CallPath, _) = path.split(CallPath)
 if CallPath.startswith('/etc/cron.'):
 	cron = True
 	print('Cron mode enabled')
@@ -100,7 +101,7 @@ def check_file(file, url, force, StoreUrl=False):
 
 	GotList = False
 # check if local file exists
-	if os.path.isfile(file):
+	if path.isfile(file):
 		OldFile = open(file, 'r')
 
 # get timestamp and url from file
@@ -149,19 +150,19 @@ def check_file(file, url, force, StoreUrl=False):
 
 	try:
 # try and open blocklist url
-		data = urllib.request.urlopen(url)
-	except urllib.error.HTTPError as e:
+		data = request.urlopen(url)
+	except error.HTTPError as e:
 		if hasattr(e, 'reason'):
-			sys.exit('We failed to reach a server: ' + str(e.reason))
+			exit('Failed to reach a server: ' + str(e.reason))
 		elif hasattr(e, 'code'):
-			sys.exit('The server couldn\'t fulfill the request: ' + e.code)
+			exit('The server couldn\'t fulfill the request: ' + e.code)
 		else:
-			sys.exit('unknown error')
-	except urllib.error.URLError as e:
+			exit('unknown error')
+	except error.URLError as e:
 		if hasattr(e, 'reason'):
-			sys.exit('URL Error: ' + str(e.reason))
+			exit('URL Error: ' + str(e.reason))
 		else:
-			sys.exit('unknown error')
+			exit('unknown error')
 
 	modified = data.getheader('last-modified')
 	if modified and modified == LastMod:
@@ -170,7 +171,7 @@ def check_file(file, url, force, StoreUrl=False):
 		try:
 			output = open(file, 'w')
 		except PermissionError:
-			sys.exit('File Error: Permission denied writing to: ' + file)
+			exit('File Error: Permission denied writing to: ' + file)
 		if modified:
 			print('\tNeeds update')
 # add modified timestamp to unbound conf file
@@ -212,7 +213,7 @@ def download_blocklist(Poutput, Pdata):
 						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockIP + '\"\n')
 	return GotItems
 
-parser = argparse.ArgumentParser()
+parser = ArgumentParser()
 parser.add_argument('-s', '--show', action='store_true',\
 help='show availible blocklists')
 parser.add_argument('-o', '--outputdir', type=str,\
@@ -241,13 +242,13 @@ if args.show:
 		print('\t-- Description: ', blocklists[record]['desc'])
 
 if args.outputdir:
-	if os.path.isdir(args.outputdir):
+	if path.isdir(args.outputdir):
 		OutputDir = args.outputdir
 # make sure path ends in /
 		if OutputDir[-1] != '/':
 			OutputDir = OutputDir + '/'
 	else:
-		sys.exit('Output directory: ' + args.outputdir + ' does not exist')
+		exit('Output directory: ' + args.outputdir + ' does not exist')
 
 NeedsReload = False
 if cron:
@@ -255,7 +256,7 @@ if cron:
 	args.blockist = ''
 	found = False
 # scan unbound folder to find blocklists
-	contents = os.scandir(OutputDir)
+	contents = scandir(OutputDir)
 	for entry in contents:
 		if entry.is_file() and entry.name.endswith('.block.conf'):
 			print('found: ', entry.name)
@@ -270,11 +271,11 @@ if cron:
 					NeedsReload = True
 					break
 	if not found:
-		sys.exit('No blocklists found')
+		exit('No blocklists found')
 else:
-	if len(sys.argv) == 1:
+	if len(argv) == 1:
 		parser.print_help()
-		sys.exit('No arguments specified')
+		exit('No arguments specified')
 
 if args.nodot:
 	dot = ''
@@ -286,7 +287,7 @@ if args.ip:
 		blockIP = '.'.join(str(int(i)) for i in parsed.group().split('.'))
 		print('Using blockip address: ', blockIP)
 	else:
-		sys.exit('Invalid ip address: ' + args.ip)
+		exit('Invalid ip address: ' + args.ip)
 
 if args.blocklist:
 	for record in args.blocklist:
@@ -300,16 +301,16 @@ if args.blocklist:
 				NeedsReload = True
 
 		else:
-			sys.exit('Error! No blocklist with id: ' + record)
+			exit('Error! No blocklist with id: ' + record)
 
 if args.url:
 	print('Checking url: ', args.url)
-	urlparsed = urllib.parse.urlsplit(args.url)
+	urlparsed = parse.urlsplit(args.url)
 	hostname = urlparsed.hostname.replace('.', rDot)
-	path = urlparsed.path.replace('/', rSlash)
+	localpath = urlparsed.path.replace('/', rSlash)
 	print('\tProcessed hostname: ', hostname)
-	print('\tProcessed path: ', path)
-	blfile = OutputDir + hostname + '.' + path + OutputPostfix
+	print('\tProcessed path: ', localpath)
+	blfile = OutputDir + hostname + '.' + localpath + OutputPostfix
 	print('\tSaving as: ', blfile)
 	if check_file(blfile, args.url, args.force, True):
 		NeedsReload = True
