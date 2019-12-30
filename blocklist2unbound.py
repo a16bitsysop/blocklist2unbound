@@ -18,6 +18,7 @@ dot = '.'
 blockIP = '0.0.0.0'
 rDot = '-'
 rSlash = '_'
+NxDomain = True
 
 # path used to start script (link path if link)
 CallPath = path.abspath(__file__)
@@ -98,6 +99,7 @@ def check_file(file, url, force, StoreUrl=False):
 # use these global variables do not create local ones
 	global blockIP
 	global dot
+	global NxDomain
 
 	GotList = False
 # check if local file exists
@@ -120,13 +122,14 @@ def check_file(file, url, force, StoreUrl=False):
 # decrease by 2 incase no MTIME
 				need -= 2
 			loop += 1
-			if loop > MaxConfLines or need >= 0:
+			if loop > MaxConfLines or need <= 0:
 				break
 		if cron:
 			for line in OldFile:
 				line = line.strip()
 # extract ip and and hostname from data line
 				if line.startswith('local-data:'):
+					NxDomain = False
 					line = line.replace('\"', '')
 					result = line.partition('IN A')
 # check if hostname has a trailing dot
@@ -137,7 +140,9 @@ def check_file(file, url, force, StoreUrl=False):
 # set blockip from file
 					blockIP = result[2].strip()
 					break
-
+				elif line.startswith('local-zone:') and line.endswith('always_nxdomain'):
+					NxDomain = True
+					break
 
 		OldFile.close()
 # force update used so make date null
@@ -209,8 +214,11 @@ def download_blocklist(Poutput, Pdata):
 					GotItems = True
 # Write out unbound format to conf file with trailing dot if needed
 					if len(parsed.group()) > 4:
-						Poutput.write('local-zone: \"' + parsed.group() + dot + '\" redirect\n')
-						Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockIP + '\"\n')
+						if NxDomain:
+							Poutput.write('local-zone: \"' + parsed.group() + dot + '\" always_nxdomain\n')
+						else:
+							Poutput.write('local-zone: \"' + parsed.group() + dot + '\" redirect\n')
+							Poutput.write('local-data: \"' + parsed.group() + dot + ' IN A ' + blockIP + '\"\n')
 	return GotItems
 
 parser = ArgumentParser()
@@ -221,9 +229,11 @@ help='default /etc/unbound/unbound.conf.d/')
 parser.add_argument('-n', '--nodot', action='store_true',\
 help='do not add a trailing \'.\' to domain name')
 parser.add_argument('-i', '--ip', type=str,\
-help='use IP in created blocklist instead of \"0.0.0.0\"')
+help='use IP in created blocklist instead of always_nxdomain')
 parser.add_argument('-f', '--force', action='store_true',\
-help='do not check if needs update')
+help='use IP in created blocklist instead of \"0.0.0.0\"')
+#parser.add_argument('-n', '--nx', action='store_true',\
+#help=''use always_nxdomain instead of an ip')
 parser.add_argument('-r', '--reload', action='store_true',\
 help='reload unbound after generating files')
 parser.add_argument('-u', '--url', type=str,\
@@ -286,6 +296,7 @@ if args.ip:
 # remove leading 0's in ip address
 		blockIP = '.'.join(str(int(i)) for i in parsed.group().split('.'))
 		print('Using blockip address: ', blockIP)
+		NxDomain = False
 	else:
 		exit('Invalid ip address: ' + args.ip)
 
