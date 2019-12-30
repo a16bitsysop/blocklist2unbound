@@ -15,7 +15,9 @@ If the remote server supports it will check if the blocklist needs updating firs
 
 To run from cron, create a symbolic link to blocklist2unbound.py from the required /etc/cron.daily|weekly|monthly 
 folder.  This enables cronmode and /etc/unbound/unbound.conf.d is scanned for .block.conf files which are then
-updated, if a blocklist is generated from a url it is stored in the file and used to update it.  Using a .py extenstion in the cron.daily|weekly|monthly folder can cause run-parts to not execute the script so the link should have no extension.
+updated, if a blocklist is generated from a url it is stored in the file and used to update it.  Unbound is reloaded if any blocklists have been updated in cronmode.
+
+Using a .py extenstion in the cron.daily|weekly|monthly folder can cause run-parts to not execute the script so the link should have no extension.
 
 eg:
 ````
